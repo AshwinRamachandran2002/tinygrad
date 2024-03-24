@@ -72,7 +72,15 @@ def uops_to_llvm_ir(function_name:str, uops:UOpGraph) -> str:
   module = ir.Module(name=__file__)
 
   # extract global buffers (NOTE: this isn't right if DEFINE_GLOBAL is out of order)
-  buf_to_dtype = {u.arg:u.dtype for u in uops if u.uop in {UOps.DEFINE_GLOBAL, UOps.DEFINE_VAR}}
+  buf_to_dtype = {}
+  for i,u in enumerate(uops):
+    if u.uop is UOps.DEFINE_GLOBAL:
+      while i != u.arg[0]: 
+        buf_to_dtype[(i, f"fake_{i}", False)] = PtrDType(dtypes.float)
+        i += 1
+      buf_to_dtype[u.arg] = u.dtype
+    elif u.uop is UOps.DEFINE_VAR:
+      buf_to_dtype[u.arg] = u.dtype
   buf_index = {x:i for i,x in enumerate(buf_to_dtype.keys())}
 
   # create llvm function
